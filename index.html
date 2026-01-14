@@ -30,11 +30,6 @@
       max-width: 100%;
       overflow-x: hidden;     /* 横スクロールを殺す */
     }
-    html, body{
-      width: 100%;
-      max-width: 100%;
-      overflow-x: hidden;     /* 横スクロールを殺す */
-    }
     .titlebar{
       background:#efefef;
       border-bottom:1px solid var(--line);
@@ -377,6 +372,16 @@
             <option value="コンタクト">コンタクト</option>
             <option value="両方">両方</option>
           </select>
+
+          <!-- ★追加：コンタクト種類（ソフト/ハード） -->
+          <div class="subControl" id="contactTypeWrap" style="display:none;">
+            <p class="hint">「コンタクト」または「両方」の場合、種類を選択してください。</p>
+            <select id="contactType">
+              <option value="">—</option>
+              <option value="ソフト">ソフト</option>
+              <option value="ハード">ハード</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -511,6 +516,10 @@
     const visionAid = el("visionAid");
     const trouble = el("trouble");
 
+    // ★追加：コンタクト種類
+    const contactTypeWrap = el("contactTypeWrap");
+    const contactType = el("contactType");
+
     const toConfirm = el("toConfirm");
     const backBtn = el("backBtn");
     const sendBtn = el("sendBtn");
@@ -539,12 +548,20 @@
     }
 
     function syncConditionalUI(){
+      // アレルギー詳細
       const isAllergy = allergy.value === "あり";
       allergyDetailWrap.style.display = isAllergy ? "block" : "none";
       if(!isAllergy) allergyDetailText.value = "";
+
+      // ★コンタクト種類（ソフト/ハード）
+      const needsContactType = (visionAid.value === "コンタクト" || visionAid.value === "両方");
+      contactTypeWrap.style.display = needsContactType ? "block" : "none";
+      if(!needsContactType) contactType.value = "";
     }
 
     allergy.addEventListener("change", syncConditionalUI);
+    // ★追加
+    visionAid.addEventListener("change", syncConditionalUI);
 
     // ===== モーダル：下までスクロールしたら同意ボタン有効 =====
     function openModalWithScrollGate(modalEl, bodyEl, agreeBtnEl){
@@ -589,15 +606,24 @@
         allergy: allergy.value,
         allergyDetail: allergyDetailText.value.trim(),
         visionAid: visionAid.value,
+        contactType: contactType.value, // ★追加
         trouble: trouble.value.trim(),
       };
 
-      // 表示用
+      // 表示用（アレルギー）
       if(d.allergy !== "あり"){
         d.allergyText = "なし";
       }else{
         d.allergyText = d.allergyDetail ? `あり（${d.allergyDetail}）` : "あり";
       }
+
+      // ★表示用（メガネ／コンタクト）
+      if(d.visionAid === "コンタクト" || d.visionAid === "両方"){
+        d.visionAidText = d.contactType ? `${d.visionAid}（${d.contactType}）` : d.visionAid;
+      }else{
+        d.visionAidText = d.visionAid;
+      }
+
       return d;
     }
 
@@ -617,6 +643,14 @@
       }
 
       if(!d.visionAid){ alert("メガネ／コンタクトの有無を選択してください。"); visionAid.focus(); return null; }
+
+      // ★追加：コンタクトor両方のときはソフト/ハード必須
+      if((d.visionAid === "コンタクト" || d.visionAid === "両方") && !d.contactType){
+        alert("コンタクトの種類（ソフト／ハード）を選択してください。");
+        contactType.focus();
+        return null;
+      }
+
       if(!d.trouble){ alert("お悩みをご記入ください。"); trouble.focus(); return null; }
 
       if(!agreeConsent.checked){ alert("同意書を確認し、同意してください。"); return null; }
@@ -635,7 +669,7 @@
         ["電話番号", d.phone],
         ["生年月日", d.birthday],
         ["アレルギーの有無", d.allergyText],
-        ["メガネ／コンタクト", d.visionAid],
+        ["メガネ／コンタクト", d.visionAidText], // ★変更
         ["お悩み", d.trouble],
         ["同意書", "同意済み"],
       ];
@@ -671,7 +705,7 @@
 【電話番号】${d.phone}
 【生年月日】${d.birthday}
 【アレルギーの有無】${d.allergyText}
-【メガネ／コンタクト】${d.visionAid}
+【メガネ／コンタクト】${d.visionAidText}
 【お悩み】${d.trouble}
 【同意書】同意済み`;
 
